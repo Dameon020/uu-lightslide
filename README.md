@@ -12,14 +12,14 @@
 </p>
 
 <p align="center">
-  <a href="https://github.com/Dameon020/uu-lightslide/releases/download/v0.3.0/UU-LightSlide-v0.3.0-universal.dmg"><strong>下载 Mac 安装包</strong></a> ·
+  <a href="https://github.com/Dameon020/uu-lightslide/releases/download/v0.4.0/UU-LightSlide-v0.4.0-universal.dmg"><strong>下载 Mac 安装包</strong></a> ·
   <a href="#安装只需几步">安装</a> ·
   <a href="#怎么用">使用</a> ·
   <a href="#常见问题">常见问题</a> ·
   <a href="https://github.com/Dameon020/uu-lightslide/releases">全部版本</a>
 </p>
 
-> 当前分支为 v0.4.0 界面改版开发版；下方公开下载仍为 v0.3.0。新版尚未发布。
+> **v0.4.0 已更新**：界面更简洁，原速可以来回切换，兼容模式不再藏起来。[查看本次更新](https://github.com/Dameon020/uu-lightslide/releases/tag/v0.4.0)
 
 ---
 
@@ -42,7 +42,23 @@ UU 轻滑就是为了解决这件事：
 <p align="center">
   <img src="docs/settings.png" width="270" alt="UU 轻滑精简界面：速度、对数滑块刻度和四档分段控件">
 </p>
-<p align="center"><em>原生 AppKit 界面渲染。日常只调速度；模式、诊断和自启动放在更多菜单。</em></p>
+<p align="center"><em>v0.4.0 实机截图。日常只调速度，其他设置收进右上角的「⋯」。</em></p>
+
+## 这次更新，少一点设置
+
+现在只记住一条：**低于 100% 就减速，选择原速就恢复。**
+
+- **主界面做减法**：去掉常驻的事件计数、来源文字、独立开关和 30 秒倒计时，只留下速度滑块与四个常用档位。
+- **快一下，再慢下来**：点「原速」恢复 UU 的正常速度，再点一次就回到上次慢速，不必重新找 5%。
+- **兼容模式看得见**：开启后标题旁显示「兼容」，点一下切回自动识别。它会影响本机鼠标，选择也会记住。
+- **需要操作时再提示**：未授权时引导授权；检测到 UU 连接信号且持续收到未标记滚动时，提供兼容模式入口。
+- **升级不用重新设置**：保留已保存的速度（包括 50% 等自定义值）和自启动选择。已保存的兼容选择也会保留；旧版本若只在内存中启用了兼容模式，升级后需重新选择一次。
+
+<p align="center">
+  <img src="docs/compatibility.png" width="270" alt="兼容模式标签，点击恢复自动识别">
+  <img src="docs/original-speed.png" width="270" alt="原速100%，再点原速回到上次慢速">
+</p>
+<p align="center"><em>兼容与原速状态的原生界面渲染。</em></p>
 
 ## 能做什么
 
@@ -61,9 +77,9 @@ UU 轻滑就是为了解决这件事：
 
 **普通用户下载 DMG 即可，不需要下载源码，也不需要安装开发工具。**
 
-- **[下载 UU 轻滑 v0.3.0 · Mac 安装包](https://github.com/Dameon020/uu-lightslide/releases/download/v0.3.0/UU-LightSlide-v0.3.0-universal.dmg)**
-- [备用：应用 ZIP](https://github.com/Dameon020/uu-lightslide/releases/download/v0.3.0/UU-LightSlide-v0.3.0-universal.app.zip)
-- [查看版本说明与校验和](https://github.com/Dameon020/uu-lightslide/releases/tag/v0.3.0)
+- **[下载 UU 轻滑 v0.4.0 · Mac 安装包](https://github.com/Dameon020/uu-lightslide/releases/download/v0.4.0/UU-LightSlide-v0.4.0-universal.dmg)**
+- [备用：应用 ZIP](https://github.com/Dameon020/uu-lightslide/releases/download/v0.4.0/UU-LightSlide-v0.4.0-universal.app.zip)
+- [查看版本说明与校验和](https://github.com/Dameon020/uu-lightslide/releases/tag/v0.4.0)
 
 需要 **macOS 13 或更新版本**，被控 Mac 和手机／iPad 上已有能正常使用的 UU 远程。安装包同时包含 **Apple Silicon（M 系列）和 Intel** 架构。
 
@@ -75,9 +91,11 @@ UU 轻滑就是为了解决这件事：
 
 1. 下载并打开 `.dmg`，把 **UU轻滑.app** 拖入 **Applications（应用程序）**。
 2. 推出安装磁盘，从“应用程序”打开 **UU轻滑**。
-3. 点击菜单栏上下箭头图标，在面板里选择 **授权辅助功能**。
+3. 首次启动会显示引导，在面板里选择 **授权辅助功能**。
 4. 在 **系统设置 → 隐私与安全性 → 辅助功能** 中允许 **UU轻滑**。不同 macOS 版本的权限名称可能有所不同。
-5. 用手机或 iPad 通过 UU 连接这台 Mac，继续操作原来的滚动工具条。
+5. 回到应用选一个速度，再用手机或 iPad 通过 UU 连接这台 Mac，操作原来的滚动工具条。首次识别成功会显示 **已识别到 UU 滚动 ✓**。
+
+授权后应用会自动重新建立滚动监听，无需手动重启；旧用户升级后可直接继续使用。如果需要重新走一遍引导，可从 **⋯ → 使用引导** 打开。
 
 **首次打开被拦住时：** 先尝试打开一次，再进入 **系统设置 → 隐私与安全性**，找到该应用的提示并选择 **仍要打开**。只在确认下载来源可信后操作，具体以 [Apple 官方说明](https://support.apple.com/102445) 为准。此步骤与辅助功能授权是两件事。
 
@@ -122,7 +140,7 @@ UU 轻滑就是为了解决这件事：
 <details>
 <summary><strong>会影响我坐在 Mac 前使用鼠标或触控板吗？</strong></summary>
 
-自动模式下，普通本机鼠标和触控板输入原样通过。只有手动选择“兼容：全部滚动减速”时，才会一起减速。
+自动模式下，普通本机鼠标和触控板输入原样通过。只有手动选择“兼容模式（也影响本机）”时，才会一起减速。
 
 Ctrl、Command、Option 配合滚轮的组合动作保持原样，避免改变缩放等操作。
 
@@ -186,6 +204,8 @@ ARCHS=x86_64 ./build.sh      # 仅构建Intel
 ## 反馈与开源
 
 遇到问题或有改进想法，欢迎 [提交 Issue](https://github.com/Dameon020/uu-lightslide/issues)。请注明 macOS、芯片、UU版本、目标软件及使用模式；不要上传账号、设备验证码或完整个人日志。
+
+感谢 [Better Remote](https://github.com/pincc-debug/better-remote) 的远控连接识别思路；相关 MIT 归属说明见 [NOTICE](NOTICE.md)。
 
 感谢 [UUyc-companion](https://github.com/aoyamashou/UUyc-companion) 对 Mac 远控体验的探索，本项目介绍页的组织方式也参考了它的清晰表达。
 

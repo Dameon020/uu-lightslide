@@ -26,9 +26,12 @@
 
 ## 发布到 GitHub
 
-1. 新建名为 `uu-lightslide` 的仓库（建议公开），上传本源码包中的全部内容，包括隐藏的 `.github` 文件夹。
-2. 仓库描述可用：“A macOS menu bar helper for precise, slower scrolling with UU Remote.”
-3. 创建对应版本的 tag 和 Release；发布说明可取 CHANGELOG.md 的相应部分。
-4. 上传 DMG、App ZIP 与 SHA256SUMS.txt，社区版应显著标注“未公证”。源码由仓库和源码ZIP同时提供。
+现有公开仓库：https://github.com/Dameon020/uu-lightslide 。
 
-项目仓库：https://github.com/Dameon020/uu-lightslide 。发布前应确认所有下载链接指向当前版本，并用最终附件重新生成校验和。
+1. 更新 Info.plist 版本号与构建号、CHANGELOG、README 下载链接、界面截图和对应的 `docs/RELEASE-vX.Y.Z.md`。
+2. 运行测试和 `./package.sh`，校验 DMG、应用签名、两个架构与 ZIP 内容。截图若为离屏渲染应明确标注，勿当作真实远控验证。
+3. 将最终源码提交并推送到 main，检查 CI，再为该提交创建对应 tag 与 Release。
+4. 上传同一次构建生成的 DMG、App ZIP、源码 ZIP 与 SHA256SUMS.txt；社区版显著标注“未经过 Apple 公证”。
+5. 从公开 Release 重新下载附件，验证校验和与下载链接，并确认 tag 对应的提交包含发布源码。
+
+不要把本机偏好、备份、个人日志、会话记录、证书或私钥加入源码及发布附件。
