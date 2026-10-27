@@ -1,0 +1,16 @@
+.DS_Store
+.build/
+dist/
+release/
+backups/
+task_plan.md
+findings.md
+progress.md
+VERIFICATION.md
+Assets/UU-reference.png
+Assets/图标设计.md
+*.p12
+*.mobileprovision
+*.key
+.env
+.env.*

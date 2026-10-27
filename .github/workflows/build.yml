@@ -1,0 +1,21 @@
+name: Build and test
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  macos:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Test synthetic scroll events
+        run: ./test.sh
+      - name: Build universal community packages
+        run: ./package.sh
+      - uses: actions/upload-artifact@v4
+        with:
+          name: UU-LightSlide-community
+          path: release/*
+          if-no-files-found: error
