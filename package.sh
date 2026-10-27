@@ -29,7 +29,7 @@ SOURCEZIP="$PWD/release/${PREFIX}-source.zip"
 mkdir -p "$STAGE/dmg"
 ditto --norsrc --noextattr "$APP" "$STAGE/dmg/UU轻滑.app"
 ln -s /Applications "$STAGE/dmg/Applications"
-cp 使用说明.html "$STAGE/dmg/安装说明.html"
+cp docs/guide.html "$STAGE/dmg/安装说明.html"
 cp LICENSE NOTICE.md "$STAGE/dmg/"
 hdiutil create -ov -volname "UU LightSlide ${VERSION}" -srcfolder "$STAGE/dmg" \
   -format UDZO -fs HFS+ "$DMG"
@@ -38,7 +38,7 @@ SRC="$STAGE/${PREFIX}-source"
 mkdir -p "$SRC/Assets"
 # Explicit allow-list: never archive the working directory or personal logs wholesale.
 for name in Sources Tests docs .github; do cp -R "$name" "$SRC/"; done
-for name in Info.plist build.sh test.sh package.sh README.md LICENSE NOTICE.md CONTRIBUTING.md CHANGELOG.md .gitignore 使用说明.html; do
+for name in Info.plist build.sh test.sh package.sh README.md LICENSE NOTICE.md CONTRIBUTING.md CHANGELOG.md .gitignore; do
   cp "$name" "$SRC/"
 done
 cp Assets/AppIcon.png Assets/AppIcon.icns "$SRC/Assets/"

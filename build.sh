@@ -2,6 +2,8 @@
 set -euo pipefail
 cd "$(dirname "$0")"
 APP="$PWD/dist/UU轻滑.app"
+# dist is disposable build output; remove stale bundle resources.
+rm -rf "$APP"
 mkdir -p "$APP/Contents/MacOS" "$APP/Contents/Resources"
 read -r -a TARGET_ARCHS <<< "${ARCHS:-arm64 x86_64}"
 SLICES=()
@@ -15,7 +17,7 @@ for arch in "${TARGET_ARCHS[@]}"; do
 done
 xcrun lipo -create "${SLICES[@]}" -output "$APP/Contents/MacOS/UUScrollHelper"
 cp Info.plist "$APP/Contents/Info.plist"
-cp 使用说明.html "$APP/Contents/Resources/使用说明.html"
+cp docs/guide.html "$APP/Contents/Resources/guide.html"
 cp Assets/AppIcon.icns "$APP/Contents/Resources/AppIcon.icns"
 cp LICENSE NOTICE.md "$APP/Contents/Resources/"
 if [ -n "${SIGN_IDENTITY:-}" ]; then

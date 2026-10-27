@@ -205,7 +205,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         }
     }
     @objc func showHelp() {
-        if let url = Bundle.main.url(forResource: "使用说明", withExtension: "html") { NSWorkspace.shared.open(url) }
+        if let url = Bundle.main.url(forResource: "guide", withExtension: "html") { NSWorkspace.shared.open(url) }
     }
     @objc func quit() { NSApp.terminate(nil) }
     func applicationWillTerminate(_ notification: Notification) { engine.stop() }

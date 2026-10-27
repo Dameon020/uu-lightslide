@@ -31,4 +31,4 @@
 3. 创建对应版本的 tag 和 Release；发布说明可取 CHANGELOG.md 的相应部分。
 4. 上传 DMG、App ZIP 与 SHA256SUMS.txt，社区版应显著标注“未公证”。源码由仓库和源码ZIP同时提供。
 
-以上步骤是准备好的发布流程；本次本地打包不等于已创建或发布 GitHub 仓库。
+项目仓库：https://github.com/Dameon020/uu-lightslide 。发布前应确认所有下载链接指向当前版本，并用最终附件重新生成校验和。
