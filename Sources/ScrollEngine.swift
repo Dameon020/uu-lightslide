@@ -2,22 +2,21 @@ import Cocoa
 import ApplicationServices
 
 final class ScrollEngine {
-    var mode = ScrollMode.automatic
+    var mode = ScrollMode.automatic { didSet { if oldValue != mode { scaler.reset() } } }
     var fraction = 0.1 { didSet { scaler.reset() } }
-    var originalUntil: TimeInterval = 0
     private(set) var observed = 0, uuObserved = 0, adjusted = 0
     private(set) var lastUUTime: TimeInterval = 0
     private(set) var lastSource = "尚未收到滚动"
     private(set) var tap: CFMachPort?
     private var source: CFRunLoopSource?
     private var scaler = ScrollScaler()
+    var recognition = RecognitionHealth()
     private var sourceCache: [Int32: (time: TimeInterval, isUU: Bool, name: String)] = [:]
 
     var running: Bool {
         guard let tap else { return false }
         return CGEvent.tapIsEnabled(tap: tap)
     }
-    var temporaryOriginal: Bool { ProcessInfo.processInfo.systemUptime < originalUntil }
 
     @discardableResult func start() -> Bool {
         if running { return true }
@@ -50,9 +49,9 @@ final class ScrollEngine {
         tap = nil; source = nil; scaler.reset()
     }
 
-    private func identify(_ pid: Int32, now: TimeInterval) -> (Bool, String) {
-        guard pid > 0 else { return (false, "系统输入（来源未标记）") }
-        if let cached = sourceCache[pid], now - cached.time < 2 { return (cached.isUU, cached.name) }
+    private func identify(_ pid: Int32, now: TimeInterval) -> (Bool, String, Bool) {
+        guard pid > 0 else { return (false, "系统输入（来源未标记）", true) }
+        if let cached = sourceCache[pid], now - cached.time < 2 { return (cached.isUU, cached.name, cached.name == "未知来源") }
         // PROC_PIDPATHINFO_MAXSIZE is a C expression macro not imported by Swift.
         var buffer = [CChar](repeating: 0, count: 4 * Int(MAXPATHLEN))
         let size = proc_pidpath(pid, &buffer, UInt32(buffer.count))
@@ -61,18 +60,23 @@ final class ScrollEngine {
         let name = path.isEmpty ? "未知来源" : URL(fileURLWithPath: path).lastPathComponent
         if sourceCache.count > 64 { sourceCache.removeAll() }
         sourceCache[pid] = (now, isUU, name)
-        return (isUU, name)
+        return (isUU, name, path.isEmpty)
     }
 
     // Reads only wheel metadata; never reads keystrokes, page content, or UU accounts.
     @discardableResult func process(_ event: CGEvent) -> Bool {
         let now = ProcessInfo.processInfo.systemUptime
         let pid = Int32(clamping: event.getIntegerValueField(.eventSourceUnixProcessID))
-        let (isUU, name) = identify(pid, now: now)
+        let (isUU, name, unidentified) = identify(pid, now: now)
         observed += 1; lastSource = name
         if isUU { uuObserved += 1; lastUUTime = now }
         let modified = !event.flags.intersection([.maskControl, .maskCommand, .maskAlternate]).isEmpty
-        guard ScrollPolicy.shouldScale(mode: mode, isUU: isUU, temporaryOriginal: temporaryOriginal,
+        let hasMovement = [CGEventField.scrollWheelEventPointDeltaAxis1, .scrollWheelEventPointDeltaAxis2,
+                           .scrollWheelEventDeltaAxis1, .scrollWheelEventDeltaAxis2].contains { event.getIntegerValueField($0) != 0 }
+        if hasMovement && !modified {
+            recognition.record(isUU ? .uu : (unidentified ? .unidentified : .other), at: now)
+        }
+        guard ScrollPolicy.shouldScale(mode: mode, isUU: isUU,
                                        modifiedGesture: modified, fraction: fraction) else {
             scaler.reset(); return true
         }

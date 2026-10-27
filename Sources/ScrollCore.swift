@@ -3,9 +3,9 @@ import Foundation
 enum ScrollMode: String { case automatic, all, off }
 
 struct ScrollPolicy {
-    static func shouldScale(mode: ScrollMode, isUU: Bool, temporaryOriginal: Bool,
+    static func shouldScale(mode: ScrollMode, isUU: Bool,
                             modifiedGesture: Bool, fraction: Double) -> Bool {
-        guard !temporaryOriginal, !modifiedGesture, fraction < 0.999 else { return false }
+        guard !modifiedGesture, fraction < 0.999 else { return false }
         switch mode {
         case .automatic: return isUU
         case .all: return true

@@ -11,8 +11,8 @@ for arch in "${TARGET_ARCHS[@]}"; do
   case "$arch" in arm64|x86_64) ;; *) echo "Unsupported architecture: $arch" >&2; exit 1 ;; esac
   mkdir -p ".build/$arch"
   xcrun swiftc -O -swift-version 5 -target "${arch}-apple-macosx13.0" \
-    Sources/ScrollCore.swift Sources/ScrollEngine.swift Sources/main.swift \
-    -o ".build/$arch/UUScrollHelper" -framework Cocoa -framework ApplicationServices -framework ServiceManagement
+    Sources/ScrollCore.swift Sources/InteractionModel.swift Sources/ScrollEngine.swift Sources/RemoteEvidence.swift Sources/CompactUI.swift Sources/main.swift \
+    -o ".build/$arch/UUScrollHelper" -framework Cocoa -framework ApplicationServices -framework ServiceManagement -framework IOKit
   SLICES+=(".build/$arch/UUScrollHelper")
 done
 xcrun lipo -create "${SLICES[@]}" -output "$APP/Contents/MacOS/UUScrollHelper"

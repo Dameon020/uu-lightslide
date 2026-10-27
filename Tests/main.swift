@@ -26,10 +26,10 @@ check(!UUSource.isUUExecutable("/Applications/Other.app/Contents/MacOS/UURemoteS
 check(!UUSource.isUUExecutable("/Applications/UURemote.app/Contents/Helpers/Unknown"), "unknown component rejected")
 for mode: ScrollMode in [.automatic, .all, .off] {
     for isUU in [false, true] {
-        let result = ScrollPolicy.shouldScale(mode: mode, isUU: isUU, temporaryOriginal: false, modifiedGesture: false, fraction: 0.1)
+        let result = ScrollPolicy.shouldScale(mode: mode, isUU: isUU, modifiedGesture: false, fraction: 0.1)
         check(result == (mode == .all || (mode == .automatic && isUU)), "mode/source policy")
-        check(!ScrollPolicy.shouldScale(mode: mode, isUU: isUU, temporaryOriginal: true, modifiedGesture: false, fraction: 0.1), "temporary original bypass")
-        check(!ScrollPolicy.shouldScale(mode: mode, isUU: isUU, temporaryOriginal: false, modifiedGesture: true, fraction: 0.1), "zoom modifier bypass")
+        check(!ScrollPolicy.shouldScale(mode: mode, isUU: isUU, modifiedGesture: false, fraction: 1), "original speed bypass")
+        check(!ScrollPolicy.shouldScale(mode: mode, isUU: isUU, modifiedGesture: true, fraction: 0.1), "zoom modifier bypass")
     }
 }
 func wheel(_ amount: Int32, units: CGScrollEventUnit = .pixel) -> CGEvent {
@@ -51,12 +51,12 @@ check(e.process(zoom) && zoom.getIntegerValueField(.scrollWheelEventPointDeltaAx
 e.mode = .automatic
 let local = wheel(100)
 check(e.process(local) && local.getIntegerValueField(.scrollWheelEventPointDeltaAxis1) == 100, "non-UU source untouched")
-e.mode = .all; e.originalUntil = ProcessInfo.processInfo.systemUptime + 30
+e.mode = .all; e.fraction = 1
 let fast = wheel(100)
-check(e.process(fast) && fast.getIntegerValueField(.scrollWheelEventPointDeltaAxis1) == 100, "fast timer bypass")
-e.originalUntil = ProcessInfo.processInfo.systemUptime - 1
+check(e.process(fast) && fast.getIntegerValueField(.scrollWheelEventPointDeltaAxis1) == 100, "original speed bypass")
+e.fraction = 0.1
 let resumed = wheel(100)
-check(e.process(resumed) && resumed.getIntegerValueField(.scrollWheelEventPointDeltaAxis1) == 10, "fast timer expiration restores")
+check(e.process(resumed) && resumed.getIntegerValueField(.scrollWheelEventPointDeltaAxis1) == 10, "selecting slow speed restores scaling")
 let ended = wheel(0); ended.setIntegerValueField(.scrollWheelEventScrollPhase, value: 4)
 check(e.process(ended), "zero delta gesture ending retained")
 check(ended.getIntegerValueField(.scrollWheelEventScrollPhase) == 4, "gesture end preserved")
@@ -66,4 +66,83 @@ if let argument = CommandLine.arguments.dropFirst().first, let pid = Int64(argum
     check(e.process(remote) && remote.getIntegerValueField(.scrollWheelEventPointDeltaAxis1) == 12, "real installed UU process path identified")
     check(e.uuObserved == 1, "UU counter updated")
 }
-print("PASS: \(count) assertions. Synthetic events only; real UU gesture test remains pending.")
+
+
+// Migration and one source of truth for speed.
+var prefs = LightSlideSettings(values: ["slowFraction": 0.5, "scrollMode": "all", "loginConfigured": true])
+check(prefs.percent == 50 && prefs.mode == .all, "50% and compatibility survive migration")
+check(!SpeedScale.presets.contains(prefs.percent), "custom50 has no selected preset")
+check(prefs.onboardingComplete, "existing users are not forced through onboarding")
+prefs.toggleOriginal()
+check(prefs.percent == 100 && prefs.previousSlowPercent == 50, "original remembers custom speed")
+prefs.toggleOriginal()
+check(prefs.percent == 50, "original toggles back to previous slow speed")
+var paused = LightSlideSettings(values: ["slowFraction": 0.05, "disabled": true])
+check(paused.percent == 100 && paused.previousSlowPercent == 5, "old paused preference becomes original")
+paused.toggleOriginal(); check(paused.percent == 5, "paused legacy restores previous speed")
+let fresh = LightSlideSettings(values: [:])
+check(fresh.percent == 10 && !fresh.onboardingComplete && fresh.mode == .automatic, "new install enters onboarding")
+let suiteName = "local.rixin.UUScrollHelper.test-" + UUID().uuidString
+let testDefaults = UserDefaults(suiteName: suiteName)!
+testDefaults.set(false, forKey: "loginConfigured")
+prefs.save(to: testDefaults)
+let roundtrip = LightSlideSettings(values: testDefaults.dictionaryRepresentation())
+check(roundtrip.percent == 50 && roundtrip.mode == .all, "speed and compatibility persist")
+check(testDefaults.bool(forKey: "loginConfigured") == false, "saving speed does not alter login preference")
+testDefaults.removePersistentDomain(forName: suiteName)
+for value in [1, 5, 10, 25, 50, 99, 100] {
+    check(SpeedScale.percent(position: SpeedScale.position(percent: value), snap: false) == value, "log mapping roundtrip")
+}
+for value in SpeedScale.presets {
+    check(SpeedScale.percent(position: SpeedScale.position(percent: value) - 0.01) == value, "preset snaps from below")
+    check(SpeedScale.percent(position: SpeedScale.position(percent: value) + 0.01) == value, "preset snaps from above")
+}
+check(SpeedScale.percent(position: SpeedScale.position(percent: 50)) == 50, "50% never snaps to a preset")
+
+func unidentifiedBurst(_ health: inout RecognitionHealth, from start: Double) {
+    for i in 0..<8 {
+        let time = start + Double(i) * 0.5
+        health.record(.unidentified, at: time)
+        health.update(connection: true, eligible: true, at: time)
+    }
+}
+var health = RecognitionHealth()
+health.update(connection: true, eligible: true, at: 0)
+unidentifiedBurst(&health, from: 3)
+check(health.suggestsCompatibility, "sustained unknown scrolling during positive connection suggests compatibility")
+health.record(.uu, at: 7)
+check(!health.suggestsCompatibility, "recognized UU scrolling clears hint immediately")
+unidentifiedBurst(&health, from: 8)
+check(!health.suggestsCompatibility, "recent recognized input prevents misleading hint")
+health.update(connection: nil, eligible: true, at: 13)
+check(!health.suggestsCompatibility, "unknown connection clears hint")
+var disconnected = RecognitionHealth()
+for i in 0..<15 {
+    disconnected.record(.unidentified, at: Double(i))
+    disconnected.update(connection: false, eligible: true, at: Double(i))
+}
+check(!disconnected.suggestsCompatibility, "ordinary unmarked local input never claims UU failure")
+var other = RecognitionHealth()
+other.update(connection: true, eligible: true, at: 0)
+for i in 0..<15 { other.record(.other, at: Double(i)); other.update(connection: true, eligible: true, at: Double(i)) }
+check(!other.suggestsCompatibility, "known other applications are not counted as unmarked UU input")
+var sparse = RecognitionHealth()
+sparse.update(connection: true, eligible: true, at: 0)
+sparse.record(.unidentified, at: 3); sparse.update(connection: true, eligible: true, at: 10)
+check(!sparse.suggestsCompatibility, "single unknown event does not prompt")
+var inactive = RecognitionHealth()
+inactive.update(connection: true, eligible: true, at: 0)
+unidentifiedBurst(&inactive, from: 3)
+inactive.update(connection: true, eligible: false, at: 7)
+check(!inactive.suggestsCompatibility, "original/compatible/untrusted mode clears hint")
+var stale = RecognitionHealth()
+stale.update(connection: true, eligible: true, at: 0)
+for i in 0..<8 { stale.record(.unidentified, at: 3 + Double(i) * 0.5) }
+stale.update(connection: true, eligible: true, at: 30)
+check(!stale.suggestsCompatibility, "old scrolling cannot trigger a later prompt")
+let uuPath = "/Applications/UURemote.app/Contents/Helpers/UURemoteServer"
+check(UUConnectionEvidence.matches(path: uuPath, name: "UURemote Disable Display Sleep", type: "PreventUserIdleDisplaySleep", level: 255), "active UU display assertion is evidence")
+check(!UUConnectionEvidence.matches(path: uuPath, name: "UURemote Disable Idle System Sleep", type: "PreventUserIdleSystemSleep", level: 255), "resident UU process is not a connection")
+check(!UUConnectionEvidence.matches(path: "/tmp/UURemoteServer", name: "UURemote Disable Display Sleep", type: "PreventUserIdleDisplaySleep", level: 255), "unrelated assertion owner rejected")
+check(!UUConnectionEvidence.matches(path: uuPath, name: "UURemote Disable Display Sleep", type: "PreventUserIdleDisplaySleep", level: 0), "inactive assertion rejected")
+print("PASS: \(count) assertions. Synthetic events/model tests; real phone/iPad acceptance remains separate.")
