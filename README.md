@@ -12,16 +12,14 @@
 </p>
 
 <p align="center">
-  <a href="https://github.com/Dameon020/uu-lightslide/releases/download/v0.4.0/UU-LightSlide-v0.4.0-universal.dmg"><strong>下载 Mac 安装包</strong></a> ·
+  <a href="https://github.com/Dameon020/uu-lightslide/releases/download/v0.5.0/UU-LightSlide-v0.5.0-universal.dmg"><strong>下载 Mac 安装包</strong></a> ·
   <a href="#安装只需几步">安装</a> ·
   <a href="#怎么用">使用</a> ·
   <a href="#常见问题">常见问题</a> ·
   <a href="https://github.com/Dameon020/uu-lightslide/releases">全部版本</a>
 </p>
 
-> 当前开发分支已加入 **v0.5.0 滚动方向设置**：主面板分别反转上下、左右，100% 原速下也生效。公开安装包仍为 v0.4.0。
-
-> **v0.4.0 已更新**：界面更简洁，原速可以来回切换，兼容模式不再藏起来。[查看本次更新](https://github.com/Dameon020/uu-lightslide/releases/tag/v0.4.0)
+> **v0.5.0 已更新**：上下、左右可独立反向；Shift＋滚轮也能横向减速和反转。[查看本次更新](https://github.com/Dameon020/uu-lightslide/releases/tag/v0.5.0)
 
 ---
 
@@ -44,23 +42,21 @@ UU 轻滑就是为了解决这件事：
 <p align="center">
   <img src="docs/settings.png" width="270" alt="UU 轻滑精简界面：速度、对数滑块刻度和四档分段控件">
 </p>
-<p align="center"><em>v0.4.0 实机截图。日常只调速度，其他设置收进右上角的「⋯」。</em></p>
+<p align="center"><em>v0.5.0 原生界面渲染：速度与方向直接调，其他设置收进「⋯」。</em></p>
 
-## 这次更新，少一点设置
+## 这次更新，方向也能自己选
 
-现在只记住一条：**低于 100% 就减速，选择原速就恢复。**
+主面板新增一行 **反向滚动：上下 / 左右**，两个方向分别控制，关闭时沿用原来的方向，开启后反转对应方向。选择会自动记住。
 
-- **主界面做减法**：去掉常驻的事件计数、来源文字、独立开关和 30 秒倒计时，只留下速度滑块与四个常用档位。
-- **快一下，再慢下来**：点「原速」恢复 UU 的正常速度，再点一次就回到上次慢速，不必重新找 5%。
-- **兼容模式看得见**：开启后标题旁显示「兼容」，点一下切回自动识别。它会影响本机鼠标，选择也会记住。
-- **需要操作时再提示**：未授权时引导授权；检测到 UU 连接信号且持续收到未标记滚动时，提供兼容模式入口。
-- **升级不用重新设置**：保留已保存的速度（包括 50% 等自定义值）和自启动选择。已保存的兼容选择也会保留；旧版本若只在内存中启用了兼容模式，升级后需重新选择一次。
+- **上下、左右独立调整**：可以只反转纵向，也可以只反转横向，或两轴一起反转。
+- **原速也能反向**：100% 只恢复速度，仍保留方向选择。
+- **Shift＋滚轮横向滚动**：兼容模式下，普通鼠标滚轮配合 Shift 可横向减速，并遵循「左右」反向选项。
+- **升级沿用已有习惯**：原有速度和模式继续保留，新方向选项默认关闭。兼容模式也会调整本机滚动。
 
 <p align="center">
-  <img src="docs/compatibility.png" width="270" alt="兼容模式标签，点击恢复自动识别">
-  <img src="docs/original-speed.png" width="270" alt="原速100%，再点原速回到上次慢速">
+  <img src="docs/direction.png" width="270" alt="上下和左右反向均开启的界面预览">
 </p>
-<p align="center"><em>兼容与原速状态的原生界面渲染。</em></p>
+<p align="center"><em>两轴反向开启的原生界面预览，默认安装时两个选项均关闭。</em></p>
 
 ## 能做什么
 
@@ -69,6 +65,7 @@ UU 轻滑就是为了解决这件事：
 | 自动处理 UU 输入 | 应用运行时，识别到 UU 发来的滚动就自动减速，每次连接不用重新开关 |
 | 1%–100% 调节 | 轻轻调滑块，找到自己舒服的速度；改完自动保存 |
 | 常用速度一键选 | 5%、10%、25%、原速；自定义 50% 等数值也会保留 |
+| 独立方向控制 | 上下、左右分别反向，支持 Shift＋普通滚轮横向调速 |
 | 原速来回切换 | 点原速恢复正常速度，再点一次回到上次速度；支持 ⌥ 点菜单栏图标 |
 | 菜单栏常驻 | 减速就绪时显示百分比，原速时仅显示图标 |
 | 登录自动启动 | Mac 登录后自动运行，也可以在更多菜单里取消 |
@@ -79,9 +76,9 @@ UU 轻滑就是为了解决这件事：
 
 **普通用户下载 DMG 即可，不需要下载源码，也不需要安装开发工具。**
 
-- **[下载 UU 轻滑 v0.4.0 · Mac 安装包](https://github.com/Dameon020/uu-lightslide/releases/download/v0.4.0/UU-LightSlide-v0.4.0-universal.dmg)**
-- [备用：应用 ZIP](https://github.com/Dameon020/uu-lightslide/releases/download/v0.4.0/UU-LightSlide-v0.4.0-universal.app.zip)
-- [查看版本说明与校验和](https://github.com/Dameon020/uu-lightslide/releases/tag/v0.4.0)
+- **[下载 UU 轻滑 v0.5.0 · Mac 安装包](https://github.com/Dameon020/uu-lightslide/releases/download/v0.5.0/UU-LightSlide-v0.5.0-universal.dmg)**
+- [备用：应用 ZIP](https://github.com/Dameon020/uu-lightslide/releases/download/v0.5.0/UU-LightSlide-v0.5.0-universal.app.zip)
+- [查看版本说明与校验和](https://github.com/Dameon020/uu-lightslide/releases/tag/v0.5.0)
 
 需要 **macOS 13 或更新版本**，被控 Mac 和手机／iPad 上已有能正常使用的 UU 远程。安装包同时包含 **Apple Silicon（M 系列）和 Intel** 架构。
 
@@ -117,7 +114,7 @@ UU 轻滑就是为了解决这件事：
 
 ### 想暂时停用
 
-选择 **原速（100%）**，或者退出应用。开发版 v0.5.0 中，原速仍保留方向选择；需要完全恢复时，同时关闭「上下」「左右」反向选项。
+选择 **原速（100%）**，或者退出应用。原速仍保留方向选择；需要完全恢复时，同时关闭「上下」「左右」反向选项。
 
 ## 常见问题
 
