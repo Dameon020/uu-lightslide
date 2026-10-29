@@ -195,4 +195,55 @@ let afterToggle = wheel(10)
 check(directionEngine.process(afterToggle) && afterToggle.getIntegerValueField(.scrollWheelEventPointDeltaAxis1) == -1, "changing direction clears fractional residue")
 let reverseEnd = wheel(0); reverseEnd.setIntegerValueField(.scrollWheelEventScrollPhase, value: 4)
 check(directionEngine.process(reverseEnd) && reverseEnd.getIntegerValueField(.scrollWheelEventScrollPhase) == 4, "reversed gesture ending preserved")
+// Shift + a discrete vertical wheel must remain horizontal after pixel conversion.
+for speed in [1.0, 0.1, 0.05] {
+    for rx in [false, true] {
+        for ry in [false, true] {
+            let engine = ScrollEngine(); engine.mode = .all; engine.fraction = speed
+            engine.reverseX = rx; engine.reverseY = ry
+            let shifted = wheel(20, units: .line); shifted.flags = .maskShift
+            let input = shifted.getIntegerValueField(.scrollWheelEventPointDeltaAxis1)
+            let stamp = shifted.timestamp
+            check(engine.process(shifted), "shift wheel retained")
+            check(shifted.getIntegerValueField(.scrollWheelEventPointDeltaAxis1) == 0, "shift wheel has no vertical drift")
+            check(shifted.getIntegerValueField(.scrollWheelEventPointDeltaAxis2) == Int64(Double(input) * speed) * (rx ? -1 : 1), "shift wheel follows horizontal reversal at every speed")
+            check(!shifted.flags.contains(.maskShift) && shifted.timestamp == stamp, "converted shift consumed once; timestamp preserved")
+            let cocoa = NSEvent(cgEvent: shifted)!
+            check(cocoa.scrollingDeltaX != 0 && cocoa.scrollingDeltaY == 0, "AppKit receives horizontal movement")
+        }
+    }
+}
+for mode: ScrollMode in [.automatic, .off] {
+    let engine = ScrollEngine(); engine.mode = mode; engine.reverseX = true
+    let shifted = wheel(20, units: .line); shifted.flags = .maskShift
+    let input = shifted.getIntegerValueField(.scrollWheelEventPointDeltaAxis1)
+    check(engine.process(shifted) && shifted.flags.contains(.maskShift) && shifted.getIntegerValueField(.scrollWheelEventPointDeltaAxis1) == input, "shift conversion respects source filtering")
+}
+for modifier: CGEventFlags in [.maskControl, .maskCommand, .maskAlternate] {
+    let engine = ScrollEngine(); engine.mode = .all; engine.reverseX = true
+    let shifted = wheel(20, units: .line); shifted.flags = [.maskShift, modifier]
+    let input = shifted.getIntegerValueField(.scrollWheelEventPointDeltaAxis1)
+    check(engine.process(shifted) && shifted.flags.contains(.maskShift) && shifted.getIntegerValueField(.scrollWheelEventPointDeltaAxis1) == input, "shift plus zoom modifiers bypass unchanged")
+}
+let nativeEngine = ScrollEngine(); nativeEngine.mode = .all; nativeEngine.fraction = 0.1
+nativeEngine.reverseX = true
+let nativeHorizontal = CGEvent(scrollWheelEvent2Source: nil, units: .line, wheelCount: 2, wheel1: 0, wheel2: 20, wheel3: 0)!
+nativeHorizontal.flags = .maskShift
+let nativeInput = nativeHorizontal.getIntegerValueField(.scrollWheelEventPointDeltaAxis2)
+check(nativeEngine.process(nativeHorizontal) && nativeHorizontal.getIntegerValueField(.scrollWheelEventPointDeltaAxis2) == -Int64(Double(nativeInput) * 0.1) && nativeHorizontal.getIntegerValueField(.scrollWheelEventPointDeltaAxis1) == 0, "already horizontal shift input is not swapped again")
+let precise = wheel(100); precise.flags = .maskShift
+check(nativeEngine.process(precise) && precise.getIntegerValueField(.scrollWheelEventPointDeltaAxis1) == 10 && precise.flags.contains(.maskShift), "precise trackpad-like input keeps existing shift behavior")
+let residueEngine = ScrollEngine(); residueEngine.mode = .all; residueEngine.fraction = 0.05
+func smallDiscrete(_ shifted: Bool) -> CGEvent {
+    let event = wheel(1, units: .line)
+    event.setIntegerValueField(.scrollWheelEventDeltaAxis1, value: 0)
+    event.setDoubleValueField(.scrollWheelEventFixedPtDeltaAxis1, value: 0.9)
+    event.setIntegerValueField(.scrollWheelEventPointDeltaAxis1, value: 9)
+    if shifted { event.flags = .maskShift }
+    return event
+}
+_ = residueEngine.process(smallDiscrete(true))
+_ = residueEngine.process(smallDiscrete(false))
+let afterShiftChange = smallDiscrete(true)
+check(!residueEngine.process(afterShiftChange), "shift transitions do not leak old residual movement")
 print("PASS: \(count) assertions. Synthetic events/model tests; real phone/iPad acceptance remains separate.")

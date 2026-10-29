@@ -81,6 +81,27 @@ final class ScrollEngine {
         guard ScrollPolicy.shouldHandle(mode: mode, isUU: isUU, modifiedGesture: modified) else {
             scaler.reset(); return true
         }
+        // A discrete Shift+vertical wheel is interpreted horizontally downstream.
+        // Convert that intent before scaling to continuous pixels (which loses that
+        // implicit mapping), and consume Shift so applications cannot map it twice.
+        // Precise trackpad gestures and already-horizontal events retain their semantics.
+        let horizontalFields: [CGEventField] = [.scrollWheelEventDeltaAxis2, .scrollWheelEventPointDeltaAxis2]
+        let shiftToHorizontal = event.flags.contains(.maskShift)
+            && event.getIntegerValueField(.scrollWheelEventIsContinuous) == 0
+            && horizontalFields.allSatisfy { event.getIntegerValueField($0) == 0 }
+            && event.getDoubleValueField(.scrollWheelEventFixedPtDeltaAxis2) == 0
+        if shiftToHorizontal {
+            let lines = event.getIntegerValueField(.scrollWheelEventDeltaAxis1)
+            let points = event.getIntegerValueField(.scrollWheelEventPointDeltaAxis1)
+            let fixed = event.getDoubleValueField(.scrollWheelEventFixedPtDeltaAxis1)
+            event.setIntegerValueField(.scrollWheelEventDeltaAxis1, value: 0)
+            event.setDoubleValueField(.scrollWheelEventFixedPtDeltaAxis1, value: 0)
+            event.setIntegerValueField(.scrollWheelEventPointDeltaAxis1, value: 0)
+            event.setIntegerValueField(.scrollWheelEventDeltaAxis2, value: lines)
+            event.setDoubleValueField(.scrollWheelEventFixedPtDeltaAxis2, value: fixed)
+            event.setIntegerValueField(.scrollWheelEventPointDeltaAxis2, value: points)
+            event.flags.remove(.maskShift)
+        }
         // At original speed, flip the original wheel fields without converting units or rounding.
         if fraction >= 0.999 {
             scaler.reset()
@@ -97,7 +118,7 @@ final class ScrollEngine {
                 event.setDoubleValueField(fixed, value: -fixedValue)
                 event.setIntegerValueField(point, value: pointValue == Int64.min ? Int64.max : -pointValue)
             }
-            if reverseX || reverseY { adjusted += 1 }
+            if reverseX || reverseY || shiftToHorizontal { adjusted += 1 }
             return true
         }
         func pixels(_ point: CGEventField, _ fixed: CGEventField, _ line: CGEventField) -> Double {
@@ -116,7 +137,7 @@ final class ScrollEngine {
         let target = event.getIntegerValueField(.eventTargetUnixProcessID)
         let window = event.getIntegerValueField(.mouseEventWindowUnderMousePointer)
         let loc = event.location
-        let context = "\(pid):\(target):\(window):\(Int(loc.x / 32)):\(Int(loc.y / 32))"
+        let context = "\(shiftToHorizontal):\(event.flags.contains(.maskShift)):\(pid):\(target):\(window):\(Int(loc.x / 32)):\(Int(loc.y / 32))"
         let delta = scaler.scale(x: reverseX ? -x : x, y: reverseY ? -y : y, fraction: fraction, time: now, context: context)
         adjusted += 1
         if delta.x == 0 && delta.y == 0 && phase == 0 && momentum == 0 { return false }
