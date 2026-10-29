@@ -6,6 +6,11 @@ struct ScrollPolicy {
     static func shouldScale(mode: ScrollMode, isUU: Bool,
                             modifiedGesture: Bool, fraction: Double) -> Bool {
         guard !modifiedGesture, fraction < 0.999 else { return false }
+        return shouldHandle(mode: mode, isUU: isUU, modifiedGesture: modifiedGesture)
+    }
+
+    static func shouldHandle(mode: ScrollMode, isUU: Bool, modifiedGesture: Bool) -> Bool {
+        guard !modifiedGesture else { return false }
         switch mode {
         case .automatic: return isUU
         case .all: return true

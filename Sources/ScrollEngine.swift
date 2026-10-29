@@ -3,6 +3,8 @@ import ApplicationServices
 
 final class ScrollEngine {
     var mode = ScrollMode.automatic { didSet { if oldValue != mode { scaler.reset() } } }
+    var reverseX = false { didSet { if oldValue != reverseX { scaler.reset() } } }
+    var reverseY = false { didSet { if oldValue != reverseY { scaler.reset() } } }
     var fraction = 0.1 { didSet { scaler.reset() } }
     private(set) var observed = 0, uuObserved = 0, adjusted = 0
     private(set) var lastUUTime: TimeInterval = 0
@@ -76,9 +78,27 @@ final class ScrollEngine {
         if hasMovement && !modified {
             recognition.record(isUU ? .uu : (unidentified ? .unidentified : .other), at: now)
         }
-        guard ScrollPolicy.shouldScale(mode: mode, isUU: isUU,
-                                       modifiedGesture: modified, fraction: fraction) else {
+        guard ScrollPolicy.shouldHandle(mode: mode, isUU: isUU, modifiedGesture: modified) else {
             scaler.reset(); return true
+        }
+        // At original speed, flip the original wheel fields without converting units or rounding.
+        if fraction >= 0.999 {
+            scaler.reset()
+            for (reverse, line, point, fixed) in [
+                (reverseY, CGEventField.scrollWheelEventDeltaAxis1, CGEventField.scrollWheelEventPointDeltaAxis1, CGEventField.scrollWheelEventFixedPtDeltaAxis1),
+                (reverseX, CGEventField.scrollWheelEventDeltaAxis2, CGEventField.scrollWheelEventPointDeltaAxis2, CGEventField.scrollWheelEventFixedPtDeltaAxis2)
+            ] where reverse {
+                // Quartz setters can recompute companion fields. Snapshot first, then write
+                // line/fixed/point in canonical order so no value is negated twice.
+                let lineValue = event.getIntegerValueField(line)
+                let pointValue = event.getIntegerValueField(point)
+                let fixedValue = event.getDoubleValueField(fixed)
+                event.setIntegerValueField(line, value: lineValue == Int64.min ? Int64.max : -lineValue)
+                event.setDoubleValueField(fixed, value: -fixedValue)
+                event.setIntegerValueField(point, value: pointValue == Int64.min ? Int64.max : -pointValue)
+            }
+            if reverseX || reverseY { adjusted += 1 }
+            return true
         }
         func pixels(_ point: CGEventField, _ fixed: CGEventField, _ line: CGEventField) -> Double {
             let p = Double(event.getIntegerValueField(point))
@@ -97,7 +117,7 @@ final class ScrollEngine {
         let window = event.getIntegerValueField(.mouseEventWindowUnderMousePointer)
         let loc = event.location
         let context = "\(pid):\(target):\(window):\(Int(loc.x / 32)):\(Int(loc.y / 32))"
-        let delta = scaler.scale(x: x, y: y, fraction: fraction, time: now, context: context)
+        let delta = scaler.scale(x: reverseX ? -x : x, y: reverseY ? -y : y, fraction: fraction, time: now, context: context)
         adjusted += 1
         if delta.x == 0 && delta.y == 0 && phase == 0 && momentum == 0 { return false }
         guard let canonical = CGEvent(scrollWheelEvent2Source: nil, units: .pixel, wheelCount: 2,

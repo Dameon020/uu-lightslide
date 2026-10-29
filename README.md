@@ -19,6 +19,8 @@
   <a href="https://github.com/Dameon020/uu-lightslide/releases">全部版本</a>
 </p>
 
+> 当前开发分支已加入 **v0.5.0 滚动方向设置**：主面板分别反转上下、左右，100% 原速下也生效。公开安装包仍为 v0.4.0。
+
 > **v0.4.0 已更新**：界面更简洁，原速可以来回切换，兼容模式不再藏起来。[查看本次更新](https://github.com/Dameon020/uu-lightslide/releases/tag/v0.4.0)
 
 ---

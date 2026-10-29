@@ -145,4 +145,54 @@ check(UUConnectionEvidence.matches(path: uuPath, name: "UURemote Disable Display
 check(!UUConnectionEvidence.matches(path: uuPath, name: "UURemote Disable Idle System Sleep", type: "PreventUserIdleSystemSleep", level: 255), "resident UU process is not a connection")
 check(!UUConnectionEvidence.matches(path: "/tmp/UURemoteServer", name: "UURemote Disable Display Sleep", type: "PreventUserIdleDisplaySleep", level: 255), "unrelated assertion owner rejected")
 check(!UUConnectionEvidence.matches(path: uuPath, name: "UURemote Disable Display Sleep", type: "PreventUserIdleDisplaySleep", level: 0), "inactive assertion rejected")
+// Direction changes are independent per axis, at both original and reduced speeds.
+check(!fresh.reverseX && !fresh.reverseY, "legacy settings preserve directions")
+prefs.reverseX = true; prefs.reverseY = true
+prefs.save(to: testDefaults)
+let savedDirection = LightSlideSettings(values: testDefaults.dictionaryRepresentation())
+check(savedDirection.reverseX && savedDirection.reverseY, "directions persist across reload")
+testDefaults.removePersistentDomain(forName: suiteName)
+for fraction in [0.1, 1.0] {
+    for rx in [false, true] {
+        for ry in [false, true] {
+            let engine = ScrollEngine(); engine.mode = .all; engine.fraction = fraction
+            engine.reverseX = rx; engine.reverseY = ry
+            let event = CGEvent(scrollWheelEvent2Source: nil, units: .pixel, wheelCount: 3, wheel1: 120, wheel2: -80, wheel3: 0)!
+            event.setIntegerValueField(.scrollWheelEventScrollPhase, value: 2)
+            event.setIntegerValueField(.scrollWheelEventMomentumPhase, value: 2)
+            let timestamp = event.timestamp
+            check(engine.process(event), "direction event retained")
+            check(event.getIntegerValueField(.scrollWheelEventPointDeltaAxis1) == Int64(120 * fraction) * (ry ? -1 : 1), "vertical direction and scale")
+            check(event.getIntegerValueField(.scrollWheelEventPointDeltaAxis2) == Int64(-80 * fraction) * (rx ? -1 : 1), "horizontal direction and scale")
+            check(event.timestamp == timestamp && event.getIntegerValueField(.scrollWheelEventScrollPhase) == 2 && event.getIntegerValueField(.scrollWheelEventMomentumPhase) == 2, "gesture metadata survives reversal")
+        }
+    }
+}
+let directionEngine = ScrollEngine(); directionEngine.mode = .all; directionEngine.fraction = 1
+directionEngine.reverseY = true
+let fractionalLine = wheel(3, units: .line)
+fractionalLine.setDoubleValueField(.scrollWheelEventFixedPtDeltaAxis1, value: 0.375)
+let originalPoints = fractionalLine.getIntegerValueField(.scrollWheelEventPointDeltaAxis1)
+let originalLines = fractionalLine.getIntegerValueField(.scrollWheelEventDeltaAxis1)
+let originalContinuous = fractionalLine.getIntegerValueField(.scrollWheelEventIsContinuous)
+check(directionEngine.process(fractionalLine), "original line event retained")
+check(fractionalLine.getDoubleValueField(.scrollWheelEventFixedPtDeltaAxis1) == -0.375, "original fractional delta reversed exactly")
+check(fractionalLine.getIntegerValueField(.scrollWheelEventPointDeltaAxis1) == -originalPoints && fractionalLine.getIntegerValueField(.scrollWheelEventDeltaAxis1) == -originalLines, "original line and point fields agree")
+check(fractionalLine.getIntegerValueField(.scrollWheelEventIsContinuous) == originalContinuous, "original units preserved")
+for flag: CGEventFlags in [.maskControl, .maskCommand, .maskAlternate] {
+    let modified = wheel(100); modified.flags = flag
+    check(directionEngine.process(modified) && modified.getIntegerValueField(.scrollWheelEventPointDeltaAxis1) == 100, "modified gestures not reversed")
+}
+for mode: ScrollMode in [.automatic, .off] {
+    directionEngine.mode = mode
+    let local = wheel(100)
+    check(directionEngine.process(local) && local.getIntegerValueField(.scrollWheelEventPointDeltaAxis1) == 100, "source and disabled scope honored for reversal")
+}
+directionEngine.mode = .all; directionEngine.fraction = 0.1; directionEngine.reverseY = false
+_ = directionEngine.process(wheel(9))
+directionEngine.reverseY = true
+let afterToggle = wheel(10)
+check(directionEngine.process(afterToggle) && afterToggle.getIntegerValueField(.scrollWheelEventPointDeltaAxis1) == -1, "changing direction clears fractional residue")
+let reverseEnd = wheel(0); reverseEnd.setIntegerValueField(.scrollWheelEventScrollPhase, value: 4)
+check(directionEngine.process(reverseEnd) && reverseEnd.getIntegerValueField(.scrollWheelEventScrollPhase) == 4, "reversed gesture ending preserved")
 print("PASS: \(count) assertions. Synthetic events/model tests; real phone/iPad acceptance remains separate.")

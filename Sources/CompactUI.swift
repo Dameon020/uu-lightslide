@@ -25,6 +25,8 @@ final class CompactPanel: NSViewController {
     let ticks = SpeedTickMarks()
     let presets = NSSegmentedControl(labels: ["5%", "10%", "25%", "原速"], trackingMode: .selectOne, target: nil, action: nil)
     let compatibility = NSButton(title: "兼容", target: nil, action: nil)
+    let reverseVertical = NSButton(checkboxWithTitle: "上下", target: nil, action: nil)
+    let reverseHorizontal = NSButton(checkboxWithTitle: "左右", target: nil, action: nil)
     let more = NSButton(image: NSImage(systemSymbolName: "ellipsis", accessibilityDescription: "更多")!, target: nil, action: nil)
     let permissionBox = NSStackView()
     let permissionText = NSTextField(wrappingLabelWithString: "开启辅助功能，才能调整滚动。")
@@ -64,7 +66,7 @@ final class CompactPanel: NSViewController {
         compatibility.bezelStyle = .inline; compatibility.controlSize = .small
         compatibility.font = .systemFont(ofSize: 11, weight: .medium)
         compatibility.attributedTitle = NSAttributedString(string: "兼容", attributes: [.foregroundColor: NSColor.labelColor, .font: NSFont.systemFont(ofSize: 11, weight: .medium)])
-        compatibility.toolTip = "兼容模式也会减慢本机鼠标。点按切回自动识别。"
+        compatibility.toolTip = "兼容模式也会调整本机滚动。点按切回自动识别。"
         compatibility.setAccessibilityLabel("兼容模式，点按恢复自动识别")
         header.addArrangedSubview(compatibility)
         header.addArrangedSubview(NSView())
@@ -107,6 +109,18 @@ final class CompactPanel: NSViewController {
         presets.setAccessibilityLabel("滚动速度快捷档位")
         presets.setToolTip("切换原速，再点一次回到上次速度", forSegment: 3)
         add(presets)
+        let directionRow = NSStackView(); directionRow.orientation = .horizontal; directionRow.spacing = 12
+        let directionLabel = NSTextField(labelWithString: "反向滚动")
+        directionLabel.font = .systemFont(ofSize: 12); directionLabel.textColor = .secondaryLabelColor
+        directionRow.addArrangedSubview(directionLabel)
+        directionRow.addArrangedSubview(NSView())
+        for (button, title) in [(reverseVertical, "反转上下滚动"), (reverseHorizontal, "反转左右滚动")] {
+            button.controlSize = .small; button.font = .systemFont(ofSize: 12)
+            button.setAccessibilityLabel(title)
+            button.toolTip = "开启后反转对应方向；关闭沿用原来的方向，原速时也生效。"
+            directionRow.addArrangedSubview(button)
+        }
+        add(directionRow)
 
         configureBox(recognitionBox)
         let hint = NSTextField(wrappingLabelWithString: "没识别到 UU 的滚动？")
@@ -130,7 +144,7 @@ final class CompactPanel: NSViewController {
     }
 
     func update(percent: Int, mode: ScrollMode, authorized: Bool, running: Bool,
-                suggestion: Bool, onboarding: String?) {
+                suggestion: Bool, onboarding: String?, reverseX: Bool = false, reverseY: Bool = false) {
         _ = view
         valueLabel.stringValue = "\(percent)%"
         valueLabel.textColor = authorized ? .controlAccentColor : .disabledControlTextColor
@@ -138,12 +152,16 @@ final class CompactPanel: NSViewController {
         slider.setAccessibilityValue("原速的 \(percent)%")
         slider.isEnabled = authorized && running
         presets.isEnabled = authorized && running
+        reverseVertical.isEnabled = authorized && running
+        reverseHorizontal.isEnabled = authorized && running
+        reverseVertical.state = reverseY ? .on : .off
+        reverseHorizontal.state = reverseX ? .on : .off
         presets.selectedSegment = SpeedScale.presets.firstIndex(of: percent) ?? -1
         compatibility.isHidden = mode != .all
         permissionBox.isHidden = authorized && running
         permissionText.stringValue = authorized ? "滚动监听未启动，请重试。" : "开启辅助功能，才能调整滚动。"
         permissionButton.title = authorized ? "重新连接滚动监听" : "开启辅助功能"
-        recognitionBox.isHidden = !suggestion || !authorized || !running || mode != .automatic || percent == 100
+        recognitionBox.isHidden = !suggestion || !authorized || !running || mode != .automatic || (percent == 100 && !reverseX && !reverseY)
         onboardingText.stringValue = onboarding ?? ""
         onboardingText.isHidden = onboarding == nil
         ticks.needsDisplay = true

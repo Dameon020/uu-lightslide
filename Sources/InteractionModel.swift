@@ -1,12 +1,16 @@
 import Foundation
 
 struct LightSlideSettings {
+    var reverseX = false
+    var reverseY = false
     var percent: Int
     var previousSlowPercent: Int
     var mode: ScrollMode
     var onboardingComplete: Bool
 
     init(values: [String: Any]) {
+        reverseX = (values["reverseHorizontal"] as? NSNumber)?.boolValue ?? false
+        reverseY = (values["reverseVertical"] as? NSNumber)?.boolValue ?? false
         let saved = (values["slowFraction"] as? NSNumber)?.doubleValue ?? 0.1
         let valid = saved.isFinite && saved >= 0.01 && saved <= 1 ? saved : 0.1
         percent = Int((valid * 100).rounded())
@@ -30,6 +34,8 @@ struct LightSlideSettings {
     }
 
     func save(to defaults: UserDefaults) {
+        defaults.set(reverseX, forKey: "reverseHorizontal")
+        defaults.set(reverseY, forKey: "reverseVertical")
         defaults.set(Double(percent) / 100, forKey: "slowFraction")
         defaults.set(previousSlowPercent, forKey: "previousSlowPercent")
         defaults.set(mode.rawValue, forKey: "scrollMode")

@@ -46,6 +46,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         panel.compatibility.target = self; panel.compatibility.action = #selector(useAutomatic)
         panel.compatibilityButton.target = self; panel.compatibilityButton.action = #selector(useCompatibility)
         panel.permissionButton.target = self; panel.permissionButton.action = #selector(authorize)
+        panel.reverseVertical.target = self; panel.reverseVertical.action = #selector(directionChanged)
+        panel.reverseHorizontal.target = self; panel.reverseHorizontal.action = #selector(directionChanged)
         panel.more.target = self; panel.more.action = #selector(showMore)
         panel.resized = { [weak self] size in self?.popover.contentSize = size }
         popover.contentViewController = panel; popover.behavior = .transient
@@ -61,6 +63,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     private func applySettings() {
+        engine.reverseX = settings.reverseX; engine.reverseY = settings.reverseY
         engine.mode = settings.mode
         engine.fraction = Double(settings.percent) / 100
     }
@@ -89,7 +92,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             engine.stop(); engine.start()
         }
         lastTrusted = trusted
-        let eligible = trusted && engine.running && settings.mode == .automatic && settings.percent < 100
+        let eligible = trusted && engine.running && settings.mode == .automatic && (settings.percent < 100 || settings.reverseX || settings.reverseY)
         if eligible, now - requestedAt >= 2 {
             requestedAt = now
             connectionMonitor.sample { [weak self] value in
@@ -101,7 +104,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         engine.recognition.update(connection: currentConnection, eligible: eligible, at: now)
         let onboarding = onboardingMessage(trusted: trusted, now: now)
         panel.update(percent: settings.percent, mode: settings.mode, authorized: trusted, running: engine.running,
-                     suggestion: engine.recognition.suggestsCompatibility, onboarding: onboarding)
+                     suggestion: engine.recognition.suggestsCompatibility, onboarding: onboarding,
+                     reverseX: settings.reverseX, reverseY: settings.reverseY)
         let reducing = trusted && engine.running && settings.percent < 100
         status.button?.title = reducing ? " \(settings.percent)%" : ""
         let mode = settings.mode == .all ? "兼容模式（也影响本机）" : "自动识别 UU"
@@ -134,6 +138,12 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             onboardingSpeedChosen = true
             onboardingUUStart = engine.uuObserved; onboardingAdjustedStart = engine.adjusted
         }
+        saveAndRefresh()
+    }
+    @objc func directionChanged() {
+        guard AXIsProcessTrusted(), engine.running else { refresh(); return }
+        settings.reverseX = panel.reverseHorizontal.state == .on
+        settings.reverseY = panel.reverseVertical.state == .on
         saveAndRefresh()
     }
     @objc func speedChanged() { chooseSpeed(SpeedScale.percent(position: panel.slider.doubleValue)) }
@@ -224,6 +234,8 @@ func renderUI(to folder: String) throws {
     let url = URL(fileURLWithPath: folder, isDirectory: true)
     try FileManager.default.createDirectory(at: url, withIntermediateDirectories: true)
     let cases: [(String, Int, ScrollMode, Bool, Bool, Bool, String?)] = [
+        ("reversed", 5, .automatic, true, true, false, nil),
+        ("reverse-original", 100, .automatic, true, true, false, nil),
         ("normal", 5, .automatic, true, true, false, nil),
         ("custom50", 50, .automatic, true, true, false, nil),
         ("original", 100, .automatic, true, true, false, nil),
@@ -240,11 +252,14 @@ func renderUI(to folder: String) throws {
             let window = NSWindow(contentRect: NSRect(x: -10000, y: -10000, width: 270, height: 184), styleMask: [.borderless], backing: .buffered, defer: false)
             window.isReleasedWhenClosed = false; window.appearance = NSAppearance(named: appearance)
             window.contentViewController = panel
-            panel.update(percent: percent, mode: mode, authorized: authorized, running: running, suggestion: hint, onboarding: onboarding)
+            panel.update(percent: percent, mode: mode, authorized: authorized, running: running, suggestion: hint, onboarding: onboarding, reverseX: name == "reversed", reverseY: name == "reversed" || name == "reverse-original")
             let expectedSegment = SpeedScale.presets.firstIndex(of: percent) ?? -1
             guard panel.presets.selectedSegment == expectedSegment,
                   panel.slider.isEnabled == (authorized && running),
                   panel.presets.isEnabled == (authorized && running),
+                  panel.reverseVertical.isEnabled == (authorized && running),
+                  panel.reverseHorizontal.state == (name == "reversed" ? .on : .off),
+                  panel.reverseVertical.state == (name == "reversed" || name == "reverse-original" ? .on : .off),
                   panel.compatibility.isHidden == (mode != .all) else {
                 throw NSError(domain: "CompactUI", code: 1, userInfo: [NSLocalizedDescriptionKey: "Invalid state: \(name)"])
             }
